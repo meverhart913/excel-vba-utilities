@@ -1,1 +1,58 @@
+Option Explicit
 
+Sub RefreshData()
+
+    On Error GoTo ErrorHandler
+
+    Application.ScreenUpdating = False
+    Application.EnableEvents = False
+    Application.DisplayStatusBar = True
+
+    Application.StatusBar = "Refreshing Pricing Encyclopedia data..."
+
+    'Refresh all workbook connections and queries
+    ThisWorkbook.RefreshAll
+
+    'Wait for async queries to complete
+    Application.CalculateUntilAsyncQueriesDone
+
+    'Refresh all pivot tables
+    Dim ws As Worksheet
+    Dim pt As PivotTable
+
+    For Each ws In ThisWorkbook.Worksheets
+
+        For Each pt In ws.PivotTables
+            pt.RefreshTable
+        Next pt
+
+    Next ws
+
+    'Update refresh timestamp on Dashboard
+    With Sheets("Dashboard")
+
+        .Range("P3").Value = "Last Refresh:"
+        .Range("Q3").Value = Now
+        .Range("Q3").NumberFormat = "mm/dd/yyyy hh:mm AM/PM"
+
+    End With
+
+    Application.StatusBar = "Refresh complete."
+
+    MsgBox "Pricing Encyclopedia data refreshed successfully.", vbInformation
+
+SafeExit:
+
+    Application.ScreenUpdating = True
+    Application.EnableEvents = True
+    Application.StatusBar = False
+
+    Exit Sub
+
+ErrorHandler:
+
+    MsgBox "Error refreshing data: " & Err.Description, vbExclamation
+
+    Resume SafeExit
+
+End Sub
